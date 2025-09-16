@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Planejamento de Rota - ICAO</title>
+<link rel="icon" type="image/png" href="img/favicon.png" />
+<!-- Biblioteca Leaflet -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+<!-- Biblioteca MarkerCluster -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css" />
+
+<!-- Importando o stylesheet externo -->
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div class="header-top">
+    <img src="img/aviationicon.png" class="logo" alt="Logo" />
+    <div class="links-scroll">
+      <a href="https://www.simbrief.com/home/" target="_blank" class="card">
+        <div class="btn-background" style="background-image: url('img/plan2.jpg');"></div>
+        <span class="label">SIMBRIEF</span>
+      </a>
+      <a href="https://fpl.ivao.aero" target="_blank" class="card">
+        <div class="btn-background" style="background-image: url('img/ivaologo.svg');"></div>
+        <span class="label">Flight Planner IVAO</span>
+      </a>
+      <a href="https://www.airmate.aero/" target="_blank" class="card">
+        <div class="btn-background" style="background-image: url('img/chart.png');"></div>
+        <span class="label">CHARTS-01</span>
+      </a>
+      <a href="https://chartfox.org/" target="_blank" class="card">
+        <div class="btn-background" style="background-image: url('img/chart.png');"></div>
+        <span class="label">CHARTS-02</span>
+      </a>
+      <a href="https://aviationweather.gov/data/metar/?ids=SBCF" target="_blank" class="card">
+        <div class="btn-background" style="background-image: url('img/Clouds-PNG.png');"></div>
+        <span class="label">METAR LOCATION</span>
+      </a>
+      <a href="https://aisweb.decea.mil.br/?i=cartas" target="_blank" class="card">
+        <div class="btn-background" style="background-image: url('img/chart.png');"></div>
+        <span class="label">CHARTS-BR</span>
+      </a>
+      <a href="https://pt.tutiempo.net/dia-noite/" target="_blank" class="card">
+        <div class="btn-background" style="background-image: url('img/sun.png');"></div>
+        <span class="label">LUZ SOLAR</span>
+      </a>
+      <a href="https://wiki.ivao.aero/en/home/operations/Global-AIP" target="_blank" class="card">
+        <div class="btn-background" style="background-image: url('img/chart.png');"></div>
+        <span class="label">CHARTS IVAO</span>
+      </a>
+      <a href="https://www.flightradar24.com/" target="_blank" class="card">
+        <div class="btn-background" style="background-image: url('img/F@radar24.png');"></div>
+        <span class="label">FLIGHTRADAR24</span>
+      </a>
+      <a href="https://fshub.io/dashboard" target="_blank" class="card">
+        <div class="btn-background" style="background-image: url('img/fshub.png');"></div>
+        <span class="label">FSHUB</span>
+      </a>
+    </div>
+  </div>
+
+<div class="container">
+  <div class="panel">
+    <h2>Entrada</h2>
+    <textarea id="icaoInput" rows="4" placeholder="Ex: SBCF SBGR SBSP"></textarea>
+    <button onclick="drawRoute()">Desenhar Rota</button>
+    <button onclick="buscarMetar()">METAR</button>
+    <div style="margin-top:10px;">
+      <label for="metarOrigem"><b>METAR Origem:</b></label>
+      <textarea id="metarOrigem" class="metar-field" readonly></textarea>
+    </div>
+    <div style="margin-top:10px;">
+      <label for="metarDestino"><b>METAR Destino:</b></label>
+      <textarea id="metarDestino" class="metar-field" readonly></textarea>
+    </div>
+    <div style="margin-top:10px;">
+      <button id="chartOrigemBtn" onclick="abrirMapa('origem')">Charts Origem</button>
+      <button id="chartDestinoBtn" onclick="abrirMapa('destino')">Charts Destino</button>
+    </div>
+    <div class="result">
+      <h3>Resultados</h3>
+      <div id="output"></div>
+    </div>
+  </div>
+  <div id="map" style="height: 900px;"></div>
+</div>
+
+<!-- Scripts JS -->
+<script src="airports.js"></script>
+<script src="runways.js"></script>
+<script src="navaids.js"></script>
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
+
+<script>
+// Map init
+const map = L.map('map').setView([-15, -47], 4);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18 }).addTo(map);
+
+// Cluster aeroportos
+const airportsCluster = L.markerClusterGroup();
+const airportsMarkers = {};
+for (const code in airports) {
+  const airport = airports[code];
+  const marker = L.marker([airport.lat, airport.lon]);
+  marker.bindTooltip(`<b>${code}</b>: ${airport.name || ''}`, { permanent: true, direction: 'right' });
+  airportsCluster.addLayer(marker);
+  airportsMarkers[code] = marker;
+}
+map.addLayer(airportsCluster);
+
+const routeLayer = L.layerGroup().addTo(map);
+const markersLayer = L.layerGroup().addTo(map);
+
+let aeroportoOrigem = null;
+let aeroportoDestino = null;
+
+// Funções auxiliares
+function toRad(d){return d*Math.PI/180;}
+function haversine(lat1, lon1, lat2, lon2){
+  const R=6371.0088;
+  const dLat=toRad(lat2-lat1), dLon=toRad(lon2-lon1);
+  const a=Math.sin(dLat/2)**2+Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLon/2)**2;
+  return 2*R*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+function kmToNm(km){return km/1.852;}
+
+// Desenho rota
+function drawRoute() {
+  routeLayer.clearLayers();
+  markersLayer.clearLayers();
+  document.getElementById("output").innerHTML = "";
+
+  const input = document.getElementById("icaoInput").value.trim().toUpperCase();
+  const parts = input.split(/\s+/).filter(Boolean);
+  if (parts.length < 2) {
+    document.getElementById("output").innerHTML = "Digite pelo menos 2 ICAOs.";
+    return;
+  }
+
+  let coords = [];
+  for (let code of parts) {
+    if (airports[code]) coords.push({ code, ...airports[code] });
+    else document.getElementById("output").innerHTML += `<div>⚠️ ${code} não encontrado</div>`;
+  }
+  if (coords.length < 2) return;
+
+  // Atualiza aeroportos origem/destino
+  aeroportoOrigem = coords[0];
+  aeroportoDestino = coords[coords.length -1];
+
+  document.getElementById("chartOrigemBtn").disabled = !aeroportoOrigem;
+  document.getElementById("chartDestinoBtn").disabled = !aeroportoDestino;
+
+  let total=0;
+  for(let i=0;i<coords.length-1;i++){
+    let a=coords[i], b=coords[i+1];
+    let km=haversine(a.lat,a.lon,b.lat,b.lon);
+    let nm=kmToNm(km); total+=nm;
+    L.polyline([[a.lat,a.lon],[b.lat,b.lon]],{color:'#ff5a5a'}).addTo(routeLayer);
+    document.getElementById("output").innerHTML+=`<div><b>${a.code}→${b.code}</b>: ${nm.toFixed(1)} NM</div>`;
+  }
+  document.getElementById("output").innerHTML+=`<hr><b>Total:</b> ${total.toFixed(1)} NM`;
+
+  // Adiciona marcadores nos pontos de origem e destino na rota
+  // Marcador de origem
+  const origemMarker = L.marker([coords[0].lat, coords[0].lon], { title: 'Origem' }).addTo(markersLayer);
+  origemMarker.bindPopup(`<b>Origem: ${coords[0].code}</b>`).openPopup();
+
+  // Marcador de destino
+  const destinoMarker = L.marker([coords[coords.length -1].lat, coords[coords.length -1].lon], { title: 'Destino' }).addTo(markersLayer);
+  destinoMarker.bindPopup(`<b>Destino: ${coords[coords.length -1].code}</b>`).openPopup();
+
+  // Centralizar o mapa na rota (pontos extremos)
+  const bounds = coords.map(c => [c.lat, c.lon]);
+  map.fitBounds(bounds);
+}
+
+// Buscar METAR
+async function buscarMetar() {
+  document.getElementById('metarOrigem').value = 'Carregando...';
+  document.getElementById('metarDestino').value = 'Carregando...';
+
+  let metarOrigem = '';
+  let metarDestino = '';
+
+  if (aeroportoOrigem) {
+    const urlOrigem = `https://aviationweather.gov/api/data/metar?ids=${aeroportoOrigem.code}&format=raw`;
+    try {
+      const responseOrigem = await fetch(urlOrigem);
+      const textOrigem = await responseOrigem.text();
+      metarOrigem = textOrigem || 'Não encontrado.';
+    } catch (err) {
+      metarOrigem = 'Erro ao buscar.';
+    }
+  } else {
+    metarOrigem = 'Aeroporto não definido.';
+  }
+
+  if (aeroportoDestino) {
+    const urlDestino = `https://aviationweather.gov/api/data/metar?ids=${aeroportoDestino.code}&format=raw`;
+    try {
+      const responseDestino = await fetch(urlDestino);
+      const textDestino = await responseDestino.text();
+      metarDestino = textDestino || 'Não encontrado.';
+    } catch (err) {
+      metarDestino = 'Erro ao buscar.';
+    }
+  } else {
+    metarDestino = 'Aeroporto não definido.';
+  }
+
+  document.getElementById('metarOrigem').value = metarOrigem;
+  document.getElementById('metarDestino').value = metarDestino;
+}
+
+// Abrir mapa do aeroporto
+function abrirMapa(tipo) {
+  let aeroporto = null;
+  if (tipo === 'origem') {
+    aeroporto = aeroportoOrigem;
+  } else if (tipo === 'destino') {
+    aeroporto = aeroportoDestino;
+  }
+  if (!aeroporto) {
+    alert('Aeroporto não definido.');
+    return;
+  }
+  const lat = aeroporto.lat;
+  const lon = aeroporto.lon;
+  const url = `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lon}#map=15/${lat}/${lon}`;
+  window.open(url, '_blank');
+}
+</script>
+</body>
+</html>
