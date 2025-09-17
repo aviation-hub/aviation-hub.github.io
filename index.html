@@ -13,8 +13,10 @@
 
 <!-- Importando o stylesheet externo -->
 <link rel="stylesheet" href="css/style.css" />
+
 </head>
 <body>
+  <!-- Cabeçalho com links -->
   <div class="header-top">
     <img src="img/aviationicon.png" class="logo" alt="Logo" />
     <div class="links-scroll">
@@ -23,7 +25,7 @@
         <span class="label">SIMBRIEF</span>
       </a>
       <a href="https://fpl.ivao.aero" target="_blank" class="card">
-        <div class="btn-background" style="background-image: url('img/ivaologo.svg');"></div>
+        <div class="btn-background" style="background-image: url('img/ivaologo.png');"></div>
         <span class="label">Flight Planner IVAO</span>
       </a>
       <a href="https://www.airmate.aero/" target="_blank" class="card">
@@ -58,15 +60,31 @@
         <div class="btn-background" style="background-image: url('img/fshub.png');"></div>
         <span class="label">FSHUB</span>
       </a>
+      <a href="https://xn--80aaahf3a6ahgmiw8k.xn--p1ai/en.html#1" target="_blank" class="card">
+        <div class="btn-background" style="background-image: url('img/airac1.png');"></div>
+        <span class="label">AIRAC</span>
+      </a>
+      <a href="https://skyvector.com/" target="_blank" class="card">
+        <div class="btn-background" style="background-image: url('img/skyvector.png');"></div>
+        <span class="label">Skyvector</span>
+      </a>
+      <a href="https://vatsim.net/" target="_blank" class="card">
+        <div class="btn-background" style="background-image: url('img/vatsim.png');"></div>
+        <span class="label">Vatsim</span>
+      </a>
     </div>
   </div>
 
+<!-- Container principal com painel e mapa -->
 <div class="container">
+  <!-- Painel de ferramentas -->
   <div class="panel">
     <h2>Entrada</h2>
-    <textarea id="icaoInput" rows="4" placeholder="Ex: SBCF SBGR SBSP"></textarea>
-    <button onclick="drawRoute()">Desenhar Rota</button>
-    <button onclick="buscarMetar()">METAR</button>
+    <textarea id="icaoInput" class="icao-field"rows="4" placeholder="Ex: SBCF SBGR SBSP"></textarea>
+    <div style="margin-top:10px;">
+      <button onclick="drawRoute()">Desenhar Rota</button>
+      <button onclick="buscarMetar()">METAR</button>
+    </div>
     <div style="margin-top:10px;">
       <label for="metarOrigem"><b>METAR Origem:</b></label>
       <textarea id="metarOrigem" class="metar-field" readonly></textarea>
@@ -75,16 +93,17 @@
       <label for="metarDestino"><b>METAR Destino:</b></label>
       <textarea id="metarDestino" class="metar-field" readonly></textarea>
     </div>
-    <div style="margin-top:10px;">
+    <div style="margin-top:10px; display:flex; gap:10px; flex-wrap:wrap;">
       <button id="chartOrigemBtn" onclick="abrirMapa('origem')">Charts Origem</button>
       <button id="chartDestinoBtn" onclick="abrirMapa('destino')">Charts Destino</button>
     </div>
-    <div class="result">
+    <div class="result" style="margin-top:10px;">
       <h3>Resultados</h3>
       <div id="output"></div>
     </div>
   </div>
-  <div id="map" style="height: 900px;"></div>
+  <!-- Mapa -->
+  <div id="map"></div>
 </div>
 
 <!-- Scripts JS -->
@@ -121,7 +140,8 @@ let aeroportoDestino = null;
 function toRad(d){return d*Math.PI/180;}
 function haversine(lat1, lon1, lat2, lon2){
   const R=6371.0088;
-  const dLat=toRad(lat2-lat1), dLon=toRad(lon2-lon1);
+  const dLat=toRad(lat2-lat1);
+  const dLon=toRad(lon2-lon1);
   const a=Math.sin(dLat/2)**2+Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLon/2)**2;
   return 2*R*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
 }
