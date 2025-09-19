@@ -118,6 +118,35 @@ body {
   border-radius: 4px;
   box-shadow: 0 0 4px rgba(0,0,0,0.1);
 }
+.grid-container {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  justify-items: center;
+  padding: 20px;
+}
+
+/* Estilo para os links contendo as imagens */
+.link-img {
+  display: inline-block;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  cursor: pointer;
+}
+
+/* Certifique-se que as imagens tenham tamanho adequado */
+.link-img img {
+  width: 100px; /* ajuste conforme necessário */
+  height: auto;
+  display: block;
+  border-radius: 8px; /* opcional, para cantos arredondados */
+}
+
+/* Efeito ao passar o mouse no link */
+.link-img:hover {
+  transform: scale(1.2);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  z-index: 10; /* para garantir que o efeito fique visível acima de outros elementos, se necessário */
+}
 
 /* Map container */
 #map {
@@ -154,4 +183,8 @@ body {
     max-width: 100%;
     margin-top: 10px;
   }
+  
+/* Estilo para o container da grade */
+/* Estilo para o container da grade */
+
 }
