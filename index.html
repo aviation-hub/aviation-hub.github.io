@@ -227,27 +227,31 @@ async function buscarMetar() {
   let metarOrigem = '';
   let metarDestino = '';
 
+  // METAR ORIGEM
   if (aeroportoOrigem) {
-    const urlOrigem = `https://aviationweather.gov/api/data/metar?ids=${aeroportoOrigem.code}&format=raw`;
+    const urlOrigem = `https://metar-proxy.ivanbsf.workers.dev/?icao=${aeroportoOrigem.code}`;
     try {
       const responseOrigem = await fetch(urlOrigem);
-      const textOrigem = await responseOrigem.text();
-      metarOrigem = textOrigem || 'Não encontrado.';
+      if (!responseOrigem.ok) throw new Error('HTTP ' + responseOrigem.status);
+      metarOrigem = await responseOrigem.text();
     } catch (err) {
-      metarOrigem = 'Erro ao buscar.';
+      console.error(err);
+      metarOrigem = 'Erro ao buscar METAR origem.';
     }
   } else {
     metarOrigem = 'Aeroporto não definido.';
   }
 
+  // METAR DESTINO
   if (aeroportoDestino) {
-    const urlDestino = `https://aviationweather.gov/api/data/metar?ids=${aeroportoDestino.code}&format=raw`;
+    const urlDestino = `https://metar-proxy.ivanbsf.workers.dev/?icao=${aeroportoDestino.code}`;
     try {
       const responseDestino = await fetch(urlDestino);
-      const textDestino = await responseDestino.text();
-      metarDestino = textDestino || 'Não encontrado.';
+      if (!responseDestino.ok) throw new Error('HTTP ' + responseDestino.status);
+      metarDestino = await responseDestino.text();
     } catch (err) {
-      metarDestino = 'Erro ao buscar.';
+      console.error(err);
+      metarDestino = 'Erro ao buscar METAR destino.';
     }
   } else {
     metarDestino = 'Aeroporto não definido.';
